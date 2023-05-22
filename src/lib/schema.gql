@@ -5,26 +5,6 @@ type User {
 	email: String
 }
 
-# add schema types to allow for pagination
-
-# page info type
-type PageInfo {
-	hasNextPage: Boolean!
-	enCursor: String!
-}
-
-# user connection type to represent the paginated user list
-type UserConnection {
-	pageInfo: PageInfo!
-	edges: [UserEdge!]!
-}
-
-# user edge type to represent the edge in connection between users
-type UserEdge {
-	cursor: String!
-	node: User!
-}
-
 # update the Query type schema to allow users to accept the first and after arguments
 type Query {
 	users(first: Int, after: Int): [User]

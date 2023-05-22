@@ -2,6 +2,7 @@
 import { cacheExchange, createClient, fetchExchange, gql, queryStore } from '@urql/svelte';
 import Loader from 'components/Loader.svelte';
 import User from 'components/User.svelte';
+const Users = ('components/User.svelte');
 import { users } from 'lib/data';
 import type { UserType } from 'lib/types';
 import { onMount } from 'svelte';
@@ -32,6 +33,7 @@ const query = gql`
     }
   });
 
+	
 	// declare a variable to track scroll
 	let scroll;
 	
@@ -45,15 +47,18 @@ const query = gql`
 	console.log('limit: ', limit);
 	console.log('after: ', startAt);
 
-  // async function to get load
-  async function getLoad() {
+  // declare an async function to get more users
+  async function getMoreUsers() {
     try {
       // don't load if already loading
-      // if ($result.fetching) return;
+      if ($result.fetching) return;
 
+			// increment the current load
 			currentLoad++;
-				startAt = (currentLoad - 1) * limit;
-				console.log(currentLoad, 'th load incoming');
+
+			// update the value of startAt because the value of currentLoad has updated
+			startAt = (currentLoad - 1) * limit;
+			console.log(currentLoad, 'th load incoming');
 
       // await the response
       const res = await client.query(query, {
@@ -61,13 +66,14 @@ const query = gql`
         after: startAt
       });
 
-      // push the results into the queryStore
+			// grab the users from the response data
       const { data } = res;
-			// grab the user list from the data
+			
       console.log('response from db:', res);
       console.log('user list:', data);
 
       if (data && data.users) {
+				// push the response user data into the queryStore's list of users
         $result.data.users.push(...res.data.users);
         console.log('promise completed, pushed user list:', $result.data.users);
       }
@@ -87,7 +93,7 @@ const query = gql`
 
       if ((scrollPosition >= pageBottom) && !$result.fetching) {
         console.log('reached the bottom');
-        getLoad();
+        getMoreUsers();
       }
     };
 
@@ -101,6 +107,13 @@ const query = gql`
       window.removeEventListener('scroll', () => scrollHandler());
     };
   });
+
+	// reactive declaration 
+	$: {
+		if ($result.data && $result.data.users) {
+			$result.data.users;
+		}
+	}
 </script>
 
 <!-- bind the scroll variable to scrollY with a svelte:window element -->
@@ -110,10 +123,6 @@ const query = gql`
 <div class="w-full h-full overflow-scroll">
   <div class="flex flex-col gap-4 items-center p-4">
     {console.log('current query store:', $result)}
-    {#if !($result.data)}
-		{console.log('current user list:', $result.data)}
-		{/if}
-
     {#if $result.fetching}
       <Loader />
     {:else if $result.data && $result.data.users}
@@ -298,251 +307,9 @@ const query = gql`
 
 	<svelte:window on:scroll={scrollHandler} /> -->
 
-	
-	<!-- <script lang="ts">
-		import { cacheExchange, createClient, fetchExchange, gql, queryStore } from '@urql/svelte';
-		import Loader from 'components/Loader.svelte';
-		import User from 'components/User.svelte';
-		import type { UserType } from 'lib/types';
-		import { onMount } from 'svelte';
-	
-		const client = createClient({
-			url: '/graphql',
-			exchanges: [cacheExchange, fetchExchange]
-		});
-	
-		const query = gql`
-			 query Users($first: Int!, $after: Int!){
-				 users(first: $first, after: $after) {
-					 id
-					 name
-					 avatar
-					 email
-				 }
-			 }
-		 `;
-	
-		// add variables property to assign the first argument to the number of users to load
-		const result = queryStore<{ users: UserType[] }>({
-			client,
-			query,
-			variables: {
-				first: 10,
-				after: 0
-			},
-			data: { users: [] }
-	 });
-	
-		
-	
-	
-	
-	
-	
-		// assign a variable to track of the current loading instance
-		let currentLoad = 1;
-	
-		// async function to get load
-		async function getLoad(){
-			try {
-				// don't load if already loading
-				if ($result.fetching) return;
-	
-				currentLoad++;
-				console.log(currentLoad, 'th load incoming');
-				const lim = $result.operation.variables.first;
-				const after = (currentLoad - 1) * lim;
-	
-				// await the response and its parse
-				const res = await client.query(query, {
-					first: lim,
-					after: after
-				});
-	
-				// grab the user list from the parsed data
-				console.log('response from db:', res);
-				console.log('user list:', data.users);
-	
-				// push the results into the queryStore
-				const { data } = res;
-	
-				if (data && data.users) {
-					$result.data.users = $result.data.users.concat(data.users);
-					console.log('promise completed, pushed user list:', data.users);
-				}
-			}
-			catch(err) {
-				console.error(err);
-			}
-		}
-	
-		// mount the event listener
-		let test = window.scrollY;
-		onMount(() => {
-			test = window.scrollY;
-			const scrollHandler = async () => {
-				let pos = window.innerHeight + window.pageYOffset;
-				let bot = document.body.offsetHeight - 30;
-				test = window.scrollY;
-	
-				console.log('scroll position:', pos);
-				console.log('test scrollY position:', test);
-				console.log('height of the doc:', bot);
-		
-				if ((pos <= bot) && !$result.fetching) {
-					console.log('reached the bottom');
-					await getLoad();
-				}
-				else if ((test <= bot) && !$result.fetching) {
-					console.log('this is the ScrollY test condition');
-					await getLoad();
-				}
-			};
-	
-			window.addEventListener('scroll', () => {
-				test = window.scrollY;
-				scrollHandler();
-			});
-	
-			console.log('scroll-handler mounted');
-			return () => {
-				window.removeEventListener('scroll', () => scrollHandler());
-			};
-		});
-	</script>
-	
-	<div class="w-full h-full overflow-scroll">
-		<div class="flex flex-col gap-4 items-center p-4">
-			{console.log('current query store:', $result)}
-			{console.log('current user list:', $result.data.users)}
-			{#if $result.fetching}
-				<Loader />
-			{:else if $result.data && $result.data.users}
-				{#each $result.data.users as user (user.id)}
-					<User {user} />
-				{/each}
-			{/if}
-		</div>
-	</div> -->
 
-<!-- <script lang="ts">
-import { cacheExchange, createClient, fetchExchange, gql, queryStore } from '@urql/svelte';
-import Loader from 'components/Loader.svelte';
-import User from 'components/User.svelte';
-import type { UserType } from 'lib/types';
-import { onMount } from 'svelte';
 
-const client = createClient({
-	url: '/graphql',
-	exchanges: [cacheExchange, fetchExchange]
-});
 
-const query = gql`
-	query Users($first: Int!, $after: Int!){
-		users(first: $first, after: $after) {
-			id
-			name
-			avatar
-			email
-		}
-	}
-`;
-
-// add variables property to assign the first argument to the number of users to load
-const result = queryStore<{ users: UserType[] }>({
-	client,
-	query,
-	variables: {
-		first: 10,
-		after: 0
-	},
-	data: { users: [] }
-});
-
-// assign variable to track current load instance
-let currentLoad = 1;
-
-// async function to get load
-async function getLoad(){
-	try {
-		// don't load if already loading
-		if ($result.fetching) return;
-
-		currentLoad++;
-		console.log(currentLoad, 'th load incoming');
-		const lim = $result.operation.variables.first;
-		const after = (currentLoad - 1) * lim;
-
-		// await the response and its parse
-		const res = await client.query(query, {
-			first: lim,
-			after: after
-		});
-
-		// grab the user list from the parsed data
-		console.log('response from db:', res);
-		console.log('user list:', data.users);
-
-		// push the results into the queryStore
-		const { data } = res;
-
-		if (data && data.users) {
-			$result.data.users = $result.data.users.concat(data.users);
-			console.log('promise completed, pushed user list:', data.users);
-		}
-	}
-	catch(err) {
-		console.error(err);
-	}
-}
-
-// mount the event listener
-onMount(() => {
-	let test = window.scrollY;
-	const scrollHandler = async () => {
-		let pos = window.innerHeight + window.pageYOffset;
-		let bot = document.body.offsetHeight - 30;
-		test = window.scrollY;
-
-		console.log('scroll position:', pos);
-		console.log('test scrollY position:', test);
-		console.log('height of the doc:', bot);
-
-		if ((pos >= bot) && !$result.fetching) {
-			console.log('reached the bottom');
-			await getLoad();
-		}
-		else if ((test >= bot) && !$result.fetching) {
-			console.log('this is the ScrollY test condition');
-			await getLoad();
-		}
-	};
-
-	window.addEventListener('scroll', async () => {
-		test = window.scrollY;
-		await scrollHandler();
-	});
-
-	console.log('scroll-handler mounted');
-	return () => {
-		window.removeEventListener('scroll', () => scrollHandler());
-	};
-});
-</script>
-
-<div class="w-full h-full overflow-scroll">
-<div class="flex flex-col gap-4 items-center p-4">
-	{console.log('current query store:', $result)}
-	{console.log('current user list:', $result.data.users)}
-	{#if $result.fetching}
-		<Loader />
-	{:else if $result.data && $result.data.users}
-		{#each $result.data.users as user (user.id)}
-			<User {user} />
-		{/each}
-	{/if}
-</div>
-</div> -->
 
 <!-- <script lang="ts">
 	import { cacheExchange, createClient, fetchExchange, gql, queryStore } from '@urql/svelte';
