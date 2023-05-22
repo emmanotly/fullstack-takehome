@@ -68,8 +68,8 @@ const query = gql`
       console.log('user list:', data);
 
       if (data && data.users) {
-        $result.data.users.push(...data.users);
-        console.log('promise completed, pushed user list:', data.users);
+        $result.data.users.push(...res.data.users);
+        console.log('promise completed, pushed user list:', $result.data.users);
       }
     }
     catch(err) {
@@ -80,12 +80,10 @@ const query = gql`
 	// removed ascync from the scrollHandler function, may want to put back later
   // mount the event listener
   onMount(() => {
+		// declare a scroll handler function
     const scrollHandler = () => {
       let scrollPosition = window.innerHeight + window.pageYOffset;
       let pageBottom = document.body.offsetHeight;
-
-      console.log('scroll position:', scrollPosition);
-      console.log('height of the doc:', pageBottom);
 
       if ((scrollPosition >= pageBottom) && !$result.fetching) {
         console.log('reached the bottom');
