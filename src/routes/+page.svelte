@@ -14,7 +14,7 @@ const client = createClient({
 });
 
 // declare the initially loaded users and users per request from the paginationConfig file
-const { initiallyLoad, usersPerRequest } = paginationConfig;
+const { usersPerRequest } = paginationConfig;
 
 const query = gql`
 	query Users($first: Int!, $after: Int!){
@@ -41,13 +41,13 @@ const query = gql`
 	let scroll: number;
 
 	// declare a variable that keeps track if there is more data that can be queried
-	let moreToQuery: boolean = true;
+	let moreUsersAvailable: boolean = true;
 	
   // declare variable to track current load instance; this will help with subsequent data queries to only query the next set of data
   let currentLoad: number = 1;
 
 	// declare a variable that defines the number of users to be queried
-	const limit = usersPerRequest;
+	const limit: number  = usersPerRequest;
 	// declare a variable to find the starting index of users that need to be queried on the current request
   let startAt = (currentLoad - 1) * usersPerRequest;
 	console.log('limit: ', limit);
@@ -82,7 +82,9 @@ const query = gql`
 				// push the response user data into the queryStore's list of users
         $result.data.users.push(...res.data.users);
         console.log('promise completed, pushed user list:', $result.data.users);
-      }
+      } else {
+				moreUsersAvailable = false;
+			}
     }
     catch(err) {
       console.error(err);
@@ -129,13 +131,13 @@ const query = gql`
 <div class="w-full h-full overflow-scroll">
   <div class="flex flex-col gap-4 items-center p-4">
     {console.log('current query store:', $result)}
-    {#if $result.fetching}
-      <Loader />
-    {:else if $result.data && $result.data.users}
+    {#if $result.data && $result.data.users}
 		{console.log('current user list:', $result.data.users)}
       {#each $result.data.users as user (user.id)}
         <User {user} />
       {/each}
+			{:else if $result.fetching && moreUsersAvailable === true}
+      <Loader />
     {/if}
   </div>
 </div>
