@@ -137,8 +137,20 @@ const query = gql`
   }
 
   .grid-item {
-    flex-basis: 48%;
-    margin-bottom: 1rem;
+    @apply flex-auto;
+    @apply w-1/2;
+    @apply p-4;
+  }
+
+	.loader {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 8px;
   }
 </style>
 
@@ -148,9 +160,9 @@ const query = gql`
 
 <div class="w-full h-full overflow-scroll">
   <div class="grid p-4">
-    {console.log('current query store:', $result)}
+    <!-- {console.log('current query store:', $result)} -->
     {#if $result.data && $result.data.users}
-		{console.log('current user list:', $result.data.users)}
+		<!-- {console.log('current user list:', $result.data.users)} -->
       {#each $result.data.users as user (user.id)}
 				<div class="grid-item">
 					<User {user} />
@@ -159,7 +171,7 @@ const query = gql`
 			<!-- {:else if $result.fetching && moreUsersAvailable}
       <Loader /> -->
     {/if}
-		<div class="flex items-center justify-center h-10">
+		<div class="loader">
 			{#if $result.fetching && moreUsersAvailable}
 			<Loader />
 			{/if}
