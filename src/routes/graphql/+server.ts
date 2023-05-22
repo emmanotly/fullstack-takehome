@@ -16,11 +16,14 @@ const yogaApp = createYoga<RequestEvent>({
 				users: (source, args, context, info) => {
 					// define first and after as valid arguments for users
 					const { first, after } = args
+					// condition if you've already queried all data, throw error
 					if (after >= users.length) {
 						return console.error(err)
+						// if the number of users left to query is less than the amount being queried via argument, just return what's left out of the users data
 					} else if (first > users.length - after) {
 						return users.slice(after, users.length)
 					}
+					// otherwise, just return the data between the two parameters with the query
 					return users.slice(after, after + first)
 				}
 			}

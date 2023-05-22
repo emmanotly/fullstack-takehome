@@ -2,7 +2,7 @@
 import { cacheExchange, createClient, fetchExchange, gql, queryStore } from '@urql/svelte';
 import Loader from 'components/Loader.svelte';
 import User from 'components/User.svelte';
-	import { users } from 'lib/data';
+import { users } from 'lib/data';
 import type { UserType } from 'lib/types';
 import { onMount } from 'svelte';
 
@@ -34,37 +34,41 @@ const query = gql`
 
 	// declare a variable to track scroll
 	let scroll;
-	// declare a variable that checks if the client has scrolled to the bottom ofthe page
 	
-
-  // assign var to track current load instance
+  // declare variable to track current load instance; this will help with subsequent data queries to only query the next set of data
   let currentLoad = 1;
 
+	// declare a variable that defines the number of users to be queried
+	const limit = $result.operation.variables.first;
+	// declare a variable to find the starting index of users that need to be queried on the current request
+  let startAt = (currentLoad - 1) * limit;
+	console.log('limit: ', limit);
+	console.log('after: ', startAt);
+
   // async function to get load
-  async function getLoad(){
+  async function getLoad() {
     try {
       // don't load if already loading
-      if ($result.fetching) return;
+      // if ($result.fetching) return;
 
-      currentLoad++;
-      console.log(currentLoad, 'th load incoming');
-      const lim = $result.operation.variables.first;
-      const after = (currentLoad - 1) * lim;
+			currentLoad++;
+				startAt = (currentLoad - 1) * limit;
+				console.log(currentLoad, 'th load incoming');
 
-      // await the response and its parse
+      // await the response
       const res = await client.query(query, {
-        first: lim,
-        after: after
+        first: limit,
+        after: startAt
       });
 
       // push the results into the queryStore
       const { data } = res;
-			// grab the user list from the parsed data
+			// grab the user list from the data
       console.log('response from db:', res);
       console.log('user list:', data);
 
       if (data && data.users) {
-        $result.data.users = res.data.users.concat(data.users);
+        $result.data.users.push(...data.users);
         console.log('promise completed, pushed user list:', data.users);
       }
     }
@@ -73,40 +77,35 @@ const query = gql`
     }
   }
 
+	// removed ascync from the scrollHandler function, may want to put back later
   // mount the event listener
   onMount(() => {
-    let test = window.scrollY;
-    const scrollHandler = async () => {
-      let pos = window.innerHeight + window.pageYOffset;
-      let bot = document.body.offsetHeight - 30;
-      test = window.scrollY;
+    const scrollHandler = () => {
+      let scrollPosition = window.innerHeight + window.pageYOffset;
+      let pageBottom = document.body.offsetHeight;
 
-      console.log('scroll position:', pos);
-      console.log('test scrollY position:', test);
-      console.log('height of the doc:', bot);
+      console.log('scroll position:', scrollPosition);
+      console.log('height of the doc:', pageBottom);
 
-      if ((pos >= bot) && !$result.fetching) {
+      if ((scrollPosition >= pageBottom) && !$result.fetching) {
         console.log('reached the bottom');
-        await getLoad();
-      }
-      else if ((test >= bot) && !$result.fetching) {
-        console.log('this is the ScrollY test condition');
-        await getLoad();
+        getLoad();
       }
     };
 
+		// attach the scroll handler to a window event listener
     window.addEventListener('scroll', async () => {
-      test = window.scrollY;
-      await scrollHandler();
+      scrollHandler();
     });
+		console.log('scroll-handler mounted');
 
-    console.log('scroll-handler mounted');
     return () => {
       window.removeEventListener('scroll', () => scrollHandler());
     };
   });
 </script>
 
+<!-- bind the scroll variable to scrollY with a svelte:window element -->
 <svelte:window bind:scrollY={scroll} />
 <h1>{scroll}</h1>
 
