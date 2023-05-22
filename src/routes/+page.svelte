@@ -42,6 +42,9 @@ const query = gql`
 
 	// declare a variable that keeps track if there is more data that can be queried
 	let moreUsersAvailable: boolean = true;
+
+	// declare a reactive array that will hold users returned from queries
+	$: queriedUsers = [];
 	
   // declare variable to track current load instance; this will help with subsequent data queries to only query the next set of data
   let currentLoad: number = 1;
@@ -50,8 +53,6 @@ const query = gql`
 	const limit: number  = usersPerRequest;
 	// declare a variable to find the starting index of users that need to be queried on the current request
   let startAt = (currentLoad - 1) * usersPerRequest;
-	console.log('limit: ', limit);
-	console.log('after: ', startAt);
 
   // declare an async function to get more users
   async function getMoreUsers() {
@@ -80,8 +81,9 @@ const query = gql`
 
       if (data && data.users) {
 				// push the response user data into the queryStore's list of users
-        $result.data.users.push(...res.data.users);
+        $result.data.users.push(...data.users);
         console.log('promise completed, pushed user list:', $result.data.users);
+				queriedUsers.push(...data.users)
       } else {
 				moreUsersAvailable = false;
 			}
@@ -121,24 +123,47 @@ const query = gql`
 		if ($result.data && $result.data.users) {
 			$result.data.users;
 		}
+		if (queriedUsers.length) {
+			queriedUsers
+		}
 	}
 </script>
 
+<style lang="postcss">
+  .grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .grid-item {
+    flex-basis: 48%;
+    margin-bottom: 1rem;
+  }
+</style>
+
 <!-- bind the scroll variable to scrollY with a svelte:window element -->
 <svelte:window bind:scrollY={scroll} />
-<h1>{scroll}</h1>
+{scroll}
 
 <div class="w-full h-full overflow-scroll">
-  <div class="flex flex-col gap-4 items-center p-4">
+  <div class="grid p-4">
     {console.log('current query store:', $result)}
     {#if $result.data && $result.data.users}
 		{console.log('current user list:', $result.data.users)}
       {#each $result.data.users as user (user.id)}
-        <User {user} />
+				<div class="grid-item">
+					<User {user} />
+				</div>
       {/each}
-			{:else if $result.fetching && moreUsersAvailable === true}
-      <Loader />
+			<!-- {:else if $result.fetching && moreUsersAvailable}
+      <Loader /> -->
     {/if}
+		<div class="flex items-center justify-center h-10">
+			{#if $result.fetching && moreUsersAvailable}
+			<Loader />
+			{/if}
+		</div>
   </div>
 </div>
 
