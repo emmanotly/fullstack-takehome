@@ -6,11 +6,15 @@ const Users = ('components/User.svelte');
 import { users } from 'lib/data';
 import type { UserType } from 'lib/types';
 import { onMount } from 'svelte';
+import { paginationConfig } from 'lib/paginationConfig'
 
 const client = createClient({
 	url: '/graphql',
 	exchanges: [cacheExchange, fetchExchange]
 });
+
+// declare the initially loaded users and users per request from the paginationConfig file
+const { initiallyLoad, usersPerRequest } = paginationConfig;
 
 const query = gql`
 	query Users($first: Int!, $after: Int!){
@@ -28,22 +32,24 @@ const query = gql`
     client,
     query,
     variables: {
-      first: 10,
+      first: usersPerRequest,
       after: 0
     }
   });
-
 	
 	// declare a variable to track scroll
-	let scroll;
+	let scroll: number;
+
+	// declare a variable that keeps track if there is more data that can be queried
+	let moreToQuery: boolean = true;
 	
   // declare variable to track current load instance; this will help with subsequent data queries to only query the next set of data
-  let currentLoad = 1;
+  let currentLoad: number = 1;
 
 	// declare a variable that defines the number of users to be queried
-	const limit = $result.operation.variables.first;
+	const limit = usersPerRequest;
 	// declare a variable to find the starting index of users that need to be queried on the current request
-  let startAt = (currentLoad - 1) * limit;
+  let startAt = (currentLoad - 1) * usersPerRequest;
 	console.log('limit: ', limit);
 	console.log('after: ', startAt);
 
