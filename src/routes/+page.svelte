@@ -82,8 +82,8 @@ const query = gql`
       if (data && data.users) {
 				// push the response user data into the queryStore's list of users
         $result.data.users.push(...data.users);
+				queriedUsers = [...$result.data.users];
         console.log('promise completed, pushed user list:', $result.data.users);
-				queriedUsers.push(...data.users)
       } else {
 				moreUsersAvailable = false;
 			}
@@ -163,7 +163,7 @@ const query = gql`
     <!-- {console.log('current query store:', $result)} -->
     {#if $result.data && $result.data.users}
 		<!-- {console.log('current user list:', $result.data.users)} -->
-      {#each $result.data.users as user (user.id)}
+      {#each queriedUsers as user, index}
 				<div class="grid-item">
 					<User {user} />
 				</div>

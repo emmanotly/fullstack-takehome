@@ -18,6 +18,7 @@
 		@apply flex flex-row justify-start items-center gap-4;
 		@apply hover:-translate-y-1 hover:shadow-xl;
 		@apply border border-gray-200;
+		@apply h-32;
 
 		img {
 			@apply bg-white rounded-full;
